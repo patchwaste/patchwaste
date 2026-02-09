@@ -27,6 +27,44 @@ cargo run -p patchwaste -- analyze --input fixtures/synthetic_case_01/BuildOutpu
 cat patchwaste-out/report.md
 ```
 
+Example output:
+
+```
+# patchwaste report
+
+- report_version: `0.1.0`
+- input_path: `fixtures/synthetic_case_01/BuildOutput`
+- parse_mode: `BEST_EFFORT`
+
+## Metrics
+
+- new_bytes: `12345678`
+- changed_content_bytes: `2000000`
+- delta_efficiency: `0.162`
+- waste_ratio: `0.838`
+
+## Findings
+
+### HIGH_WASTE_RATIO
+- severity: `High`
+- likely_cause: Large packed file churn or content reorder causing many new chunks
+- evidence:
+  - waste_ratio=0.838
+- suggested_actions:
+  - Avoid reordering assets inside large packed files between builds
+  - Split packs by level/realm to localize churn
+  - Align pack layout to stable boundaries (e.g., 1MB) where applicable
+
+### LARGE_TOP_OFFENDER
+- severity: `Medium`
+- likely_cause: A large file dominates predicted update size
+- evidence:
+  - GameContent.pak (800000000 bytes)
+- suggested_actions:
+  - If this is a pack file, consider splitting into multiple packs
+  - Ensure build process does not rewrite the whole file for small changes
+```
+
 ### Full E2E example (baseline + compare + budget gate)
 
 Use the included automation-safe dummy fixture:
@@ -79,12 +117,30 @@ See:
 - `SUPPORT.md`
 - `TRADEMARK.md`
 
-## Development + CI workflow
+## CI integration
 
-See `docs/development.md` for:
-- local validation (`fmt`, `clippy`, `test`)
-- baseline generation
-- CI-style budget-gate comparison flow
+Add patchwaste as a budget gate in your GitHub Actions workflow:
+
+```yaml
+- name: Install patchwaste
+  run: cargo install --git https://github.com/patchwaste/patchwaste patchwaste
+
+- name: Run patchwaste budget gate
+  run: |
+    patchwaste analyze \
+      --input path/to/BuildOutput \
+      --baseline baseline.json \
+      --budget-ratio 1.25 \
+      --out patchwaste-out
+```
+
+Exit code `0` means the patch is within budget. Exit code `2` means it exceeded the threshold — the step fails and the pipeline stops.
+
+Store `patchwaste-out/report.json` from a known-good build as your `baseline.json`. Update it when you intentionally accept a new baseline.
+
+## Development
+
+See `docs/development.md` for local validation (`fmt`, `clippy`, `test`) and baseline generation.
 
 ## Exit codes
 

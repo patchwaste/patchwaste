@@ -91,9 +91,30 @@ fn run_analyze(
         report.metrics.new_bytes, report.metrics.changed_content_bytes, report.metrics.waste_ratio
     );
 
+    let use_color = std::env::var_os("NO_COLOR").is_none();
+    let (green, red, reset) = if use_color {
+        ("\x1b[32m", "\x1b[31m", "\x1b[0m")
+    } else {
+        ("", "", "")
+    };
+
     let exit = match &report.budget {
-        Some(b) if !b.pass => std::process::ExitCode::from(2),
-        _ => std::process::ExitCode::from(0),
+        Some(b) if !b.pass => {
+            eprintln!(
+                "{red}BUDGET FAILED{reset} ({:.2}x > {:.2}x budget)",
+                report
+                    .baseline_comparison
+                    .as_ref()
+                    .map(|c| c.regression_ratio)
+                    .unwrap_or(0.0),
+                b.threshold_regression_ratio,
+            );
+            std::process::ExitCode::from(2)
+        }
+        _ => {
+            eprintln!("{green}PASS{reset}");
+            std::process::ExitCode::from(0)
+        }
     };
 
     Ok(exit)
