@@ -1,0 +1,104 @@
+# patchwaste (SteamPipe patch efficiency gate)
+
+![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
+![Status: Open Core](https://img.shields.io/badge/model-open--core-success)
+![Focus: Unreal + Steam](https://img.shields.io/badge/focus-Unreal%20%2B%20Steam-orange)
+
+Rust CLI + GitHub Actions-friendly report generator to detect patch-size regressions from SteamPipe preview build output.
+
+## Start Here
+
+> If this is your first time:
+> 1. Read **ELI5** below.
+> 2. Run the 2-command quickstart.
+> 3. Follow the full tutorial in `docs/tutorial-canonical-example.md`.
+> 4. Check scope/roadmap in `docs/open-core-scope.md` and `docs/roadmap.md`.
+
+## ELI5 (for absolute beginners)
+
+You ship a game update. Steam patch is much bigger than expected. `patchwaste` tells you if your build changed too much data for too little real content change.
+
+Think of it like this: if you changed one sentence in a book, but the printer made everyone download half the book again, that's waste. This tool measures that waste and gives a red/green signal for CI.
+
+## Quickstart (local)
+
+```bash
+cargo run -p patchwaste -- analyze --input fixtures/synthetic_case_01/BuildOutput --out patchwaste-out
+cat patchwaste-out/report.md
+```
+
+### Full E2E example (baseline + compare + budget gate)
+
+Use the included automation-safe dummy fixture:
+
+```bash
+# 1) Create baseline
+cargo run -p patchwaste -- analyze \
+  --input fixtures/automation_dummy/BuildOutput \
+  --out patchwaste-out
+cp patchwaste-out/report.json baseline.json
+
+# 2) Compare against baseline (expected pass, exit 0)
+cargo run -p patchwaste -- analyze \
+  --input fixtures/automation_dummy/BuildOutput \
+  --baseline baseline.json \
+  --budget-ratio 1.25 \
+  --out patchwaste-out-compare
+echo $?   # 0
+
+# 3) Simulate failing budget gate by using a tiny baseline (expected exit 2)
+printf '{"metrics":{"new_bytes":1000}}\n' > baseline-small.json
+cargo run -p patchwaste -- analyze \
+  --input fixtures/automation_dummy/BuildOutput \
+  --baseline baseline-small.json \
+  --budget-ratio 1.25 \
+  --out patchwaste-out-fail
+echo $?   # 2
+```
+
+## Project layout
+
+- Parser and analysis core: `crates/core/`
+- CLI entrypoint: `crates/cli/`
+- Fixture-driven tests: `crates/core/tests/` and `fixtures/`
+- Report schema stability matters for CI gate consumers
+
+## Open Core Model
+
+This repository is the Apache-2.0 open core for local-first Unreal/Steam patch waste analysis.
+
+See:
+- `docs/open-core-scope.md`
+- `docs/roadmap.md`
+- `docs/ANNOUNCEMENT.md`
+- `docs/tutorial-canonical-example.md`
+- `docs/FAQ.md`
+- `docs/release-template.md`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `SUPPORT.md`
+- `TRADEMARK.md`
+
+## Development + CI workflow
+
+See `docs/development.md` for:
+- local validation (`fmt`, `clippy`, `test`)
+- baseline generation
+- CI-style budget-gate comparison flow
+
+## Exit codes
+
+- 0: pass
+- 2: budget failed
+- 1: tool error (or strict mode missing required counters)
+
+## Notes
+
+- This repo includes a synthetic fixture log. Replace `fixtures/*` with your real SteamPipe preview BuildOutput.
+- This repo also includes `fixtures/automation_dummy/BuildOutput` for CI/test automation.
+- Metrics are labeled as *estimated* unless confidence is HIGH.
+
+## License
+
+Apache-2.0. See `LICENSE`.
+Attribution notice file: `NOTICE`.

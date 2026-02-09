@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+.DS_Store
+patchwaste-out/
+patchwaste-out-test/
+*.log
+!fixtures/**/*.log
+*.tmp
