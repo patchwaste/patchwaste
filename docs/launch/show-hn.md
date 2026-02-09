@@ -28,9 +28,9 @@ In the bundled canonical example it prints:
 - `changed_content_bytes=1048576`
 - `waste_ratio=0.750`
 
-Repo: <REPO_URL>
-Tutorial: <REPO_URL>/blob/main/docs/tutorial-canonical-example.md
-FAQ: <REPO_URL>/blob/main/docs/FAQ.md
+Repo: https://github.com/patchwaste/patchwaste
+Tutorial: https://github.com/patchwaste/patchwaste/blob/main/docs/tutorial-canonical-example.md
+FAQ: https://github.com/patchwaste/patchwaste/blob/main/docs/FAQ.md
 
 Feedback I’m specifically looking for:
 1. false positives/negatives on real logs
@@ -46,7 +46,7 @@ If you test it, please share:
 - command run
 - expected vs actual
 
-Issue templates here: <REPO_URL>/issues/new/choose
+Issue templates here: https://github.com/patchwaste/patchwaste/issues/new/choose
 
 ## Fast reply snippets
 

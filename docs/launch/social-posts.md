@@ -10,8 +10,8 @@ Shipped `patchwaste` v0.1.0: Apache-2.0 open-core CLI for Unreal + Steam teams t
 
 Show HN soon. Feedback wanted on false positives + CI friction.
 
-Repo: <REPO_URL>
-Tutorial: <REPO_URL>/blob/main/docs/tutorial-canonical-example.md
+Repo: https://github.com/patchwaste/patchwaste
+Tutorial: https://github.com/patchwaste/patchwaste/blob/main/docs/tutorial-canonical-example.md
 
 ## LinkedIn
 
@@ -30,8 +30,8 @@ What we want feedback on:
 2. report clarity and actionability
 3. integration friction in CI
 
-Repo: <REPO_URL>
-Tutorial: <REPO_URL>/blob/main/docs/tutorial-canonical-example.md
+Repo: https://github.com/patchwaste/patchwaste
+Tutorial: https://github.com/patchwaste/patchwaste/blob/main/docs/tutorial-canonical-example.md
 
 ## Reddit (r/gamedev / r/devops)
 
@@ -52,5 +52,5 @@ If you try it, I’d love feedback on:
 - where reports are unclear
 - CI onboarding pain points
 
-Repo: <REPO_URL>
-Tutorial: <REPO_URL>/blob/main/docs/tutorial-canonical-example.md
+Repo: https://github.com/patchwaste/patchwaste
+Tutorial: https://github.com/patchwaste/patchwaste/blob/main/docs/tutorial-canonical-example.md
