@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 
+use patchwaste_core::report::Report;
+use patchwaste_core::types::Severity;
 use patchwaste_core::{analyze_dir, AnalyzeOptions};
 
 #[derive(Parser, Debug)]
@@ -36,6 +38,44 @@ enum Commands {
     },
 }
 
+struct Style {
+    bold: &'static str,
+    dim: &'static str,
+    red: &'static str,
+    green: &'static str,
+    yellow: &'static str,
+    orange: &'static str,
+    reset: &'static str,
+}
+
+const COLOR: Style = Style {
+    bold: "\x1b[1m",
+    dim: "\x1b[2m",
+    red: "\x1b[31m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    orange: "\x1b[38;5;208m",
+    reset: "\x1b[0m",
+};
+
+const PLAIN: Style = Style {
+    bold: "",
+    dim: "",
+    red: "",
+    green: "",
+    yellow: "",
+    orange: "",
+    reset: "",
+};
+
+fn style() -> &'static Style {
+    if std::env::var_os("NO_COLOR").is_some() {
+        &PLAIN
+    } else {
+        &COLOR
+    }
+}
+
 fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
 
@@ -52,10 +92,78 @@ fn main() -> std::process::ExitCode {
     match res {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("error: {:#}", e);
+            let s = style();
+            eprintln!("{}{red}error:{reset} {:#}", s.bold, e, red = s.red, reset = s.reset);
             std::process::ExitCode::from(1)
         }
     }
+}
+
+fn print_banner() {
+    let s = style();
+    eprintln!(
+        "\n  {bold}patch{reset}{orange}|{reset}{dim}waste{reset}  {dim}steampipe efficiency gate{reset}\n",
+        bold = s.bold,
+        orange = s.orange,
+        dim = s.dim,
+        reset = s.reset,
+    );
+}
+
+fn waste_color(ratio: f64) -> &'static str {
+    let s = style();
+    if ratio < 0.3 {
+        s.green
+    } else if ratio < 0.5 {
+        s.yellow
+    } else {
+        s.red
+    }
+}
+
+fn severity_color(sev: &Severity) -> &'static str {
+    let s = style();
+    match sev {
+        Severity::High => s.red,
+        Severity::Medium => s.yellow,
+        Severity::Low => s.dim,
+    }
+}
+
+fn commas(n: u64) -> String {
+    let s = n.to_string();
+    let bytes = s.as_bytes();
+    let mut result = String::with_capacity(s.len() + s.len() / 3);
+    for (i, &b) in bytes.iter().enumerate() {
+        if i > 0 && (bytes.len() - i).is_multiple_of(3) {
+            result.push(',');
+        }
+        result.push(b as char);
+    }
+    result
+}
+
+fn print_report(report: &Report, out: &Path) {
+    let s = style();
+    let wc = waste_color(report.metrics.waste_ratio);
+
+    eprintln!("  {dim}new_bytes             {reset}{bold}{}{reset}", commas(report.metrics.new_bytes), dim = s.dim, bold = s.bold, reset = s.reset);
+    eprintln!("  {dim}changed_content_bytes {reset}{bold}{}{reset}", commas(report.metrics.changed_content_bytes), dim = s.dim, bold = s.bold, reset = s.reset);
+    eprintln!("  {dim}waste_ratio           {reset}{wc}{bold}{:.3}{reset}", report.metrics.waste_ratio, dim = s.dim, wc = wc, bold = s.bold, reset = s.reset);
+    eprintln!("  {dim}delta_efficiency      {reset}{bold}{:.3}{reset}", report.metrics.delta_efficiency, dim = s.dim, bold = s.bold, reset = s.reset);
+
+    if !report.findings.is_empty() {
+        eprintln!();
+        for f in &report.findings {
+            let sc = severity_color(&f.severity);
+            eprintln!("  {sc}{:?}{reset}  {}", f.severity, f.id, sc = sc, reset = s.reset);
+        }
+    }
+
+    eprintln!();
+    eprintln!("  {dim}\u{2192} {}{reset}", out.join("report.json").display(), dim = s.dim, reset = s.reset);
+    eprintln!("  {dim}\u{2192} {}{reset}", out.join("report.md").display(), dim = s.dim, reset = s.reset);
+    eprintln!();
 }
 
 fn run_analyze(
@@ -65,6 +173,10 @@ fn run_analyze(
     strict: bool,
     out: &Path,
 ) -> anyhow::Result<std::process::ExitCode> {
+    let s = style();
+
+    print_banner();
+
     let opts = AnalyzeOptions {
         strict,
         budget_ratio,
@@ -86,36 +198,39 @@ fn run_analyze(
     let md = report.to_markdown();
     std::fs::write(&md_path, md).with_context(|| format!("write {}", md_path.display()))?;
 
+    // Machine-parseable line on stdout
     println!(
         "new_bytes={} changed_content_bytes={} waste_ratio={:.3}",
         report.metrics.new_bytes, report.metrics.changed_content_bytes, report.metrics.waste_ratio
     );
 
-    let use_color = std::env::var_os("NO_COLOR").is_none();
-    let (green, red, reset) = if use_color {
-        ("\x1b[32m", "\x1b[31m", "\x1b[0m")
-    } else {
-        ("", "", "")
-    };
+    // Human-readable output on stderr
+    print_report(&report, out);
 
     let exit = match &report.budget {
         Some(b) if !b.pass => {
             eprintln!(
-                "{red}BUDGET FAILED{reset} ({:.2}x > {:.2}x budget)",
+                "  {red}{bold}BUDGET FAILED{reset}  {dim}({:.2}x > {:.2}x budget){reset}",
                 report
                     .baseline_comparison
                     .as_ref()
                     .map(|c| c.regression_ratio)
                     .unwrap_or(0.0),
                 b.threshold_regression_ratio,
+                red = s.red,
+                bold = s.bold,
+                dim = s.dim,
+                reset = s.reset,
             );
             std::process::ExitCode::from(2)
         }
         _ => {
-            eprintln!("{green}PASS{reset}");
+            eprintln!("  {green}{bold}PASS{reset}", green = s.green, bold = s.bold, reset = s.reset);
             std::process::ExitCode::from(0)
         }
     };
+
+    eprintln!();
 
     Ok(exit)
 }

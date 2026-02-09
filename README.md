@@ -1,10 +1,18 @@
-# patchwaste (SteamPipe patch efficiency gate)
+<p align="center">
+  <img src="docs/logo.svg" alt="patch|waste" width="480">
+</p>
 
-![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
-![Status: Open Core](https://img.shields.io/badge/model-open--core-success)
-![Focus: Unreal + Steam](https://img.shields.io/badge/focus-Unreal%20%2B%20Steam-orange)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+  <a href="docs/open-core-scope.md"><img src="https://img.shields.io/badge/model-open--core-success" alt="Open Core"></a>
+  <img src="https://img.shields.io/badge/focus-Unreal%20%2B%20Steam-orange" alt="Focus">
+</p>
 
-Rust CLI + GitHub Actions-friendly report generator to detect patch-size regressions from SteamPipe preview build output.
+<p align="center">
+  Rust CLI + GitHub Actions gate to detect patch-size regressions from SteamPipe preview build output.
+</p>
+
+---
 
 ## Start Here
 
